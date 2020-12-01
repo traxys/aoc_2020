@@ -1,5 +1,4 @@
-const DAY: &str = "day1";
-use aoc_2020::read_input;
+use aoc_2020::DayContext;
 
 fn part_1(lines: Vec<u64>) -> color_eyre::Result<()> {
     let mut expense = &lines[..];
@@ -49,7 +48,7 @@ fn part_2(lines: Vec<u64>) -> color_eyre::Result<()> {
 }
 
 fn main() -> color_eyre::Result<()> {
-    let input = read_input(DAY)?;
-    let lines = aoc_2020::read_all_lines(input, |x: String| -> Result<u64, _> { x.parse() })?;
-    aoc_2020::execute_day(lines, part_1, part_2)
+    let mut context = DayContext::load()?;
+    let lines = context.parse_lines(|x| -> Result<u64, _> { x.parse() })?;
+    context.execute(lines, part_1, part_2)
 }

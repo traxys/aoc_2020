@@ -1,8 +1,10 @@
 use color_eyre::eyre::Context;
-use std::io::BufRead;
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+    path::PathBuf,
+};
 use structopt::StructOpt;
-
-const INPUTS: &str = "inputs";
 
 enum Part {
     One,
@@ -21,40 +23,77 @@ impl std::str::FromStr for Part {
     }
 }
 
+pub struct DayContext {
+    part: Part,
+    input_file: BufReader<File>,
+}
+
+impl DayContext {
+    pub fn load() -> color_eyre::Result<Self> {
+        let args = Args::from_args();
+        let input_file = File::open(&args.input)
+            .with_context(|| format!("Could not open input: {:?}", args.input))?;
+        let input_file = BufReader::new(input_file);
+
+        Ok(Self {
+            input_file,
+            part: args.part,
+        })
+    }
+
+    pub fn execute<I, P1, P2>(&self, input: I, part1: P1, part2: P2) -> color_eyre::Result<()>
+    where
+        P1: FnOnce(I) -> color_eyre::Result<()>,
+        P2: FnOnce(I) -> color_eyre::Result<()>,
+    {
+        match self.part {
+            Part::One => part1(input),
+            Part::Two => part2(input),
+        }
+    }
+
+    pub fn parse_lines<
+        I,
+        E: Send + Sync + std::error::Error + 'static,
+        F: FnMut(&str) -> Result<I, E>,
+    >(
+        &mut self,
+        mut parser: F,
+    ) -> color_eyre::Result<Vec<I>> {
+        let mut result = Vec::new();
+
+        let mut buf = String::new();
+        loop {
+            buf.clear();
+            match self
+                .input_file
+                .read_line(&mut buf)
+                .with_context(|| "Could not read line in the input file")?
+            {
+                0 => break,
+                _ => {
+                    if buf.ends_with('\n') {
+                        buf.pop();
+                        if buf.ends_with('\r') {
+                            buf.pop();
+                        }
+                    }
+                    result.push(
+                        parser(&buf)
+                            .with_context(|| format!("Could not parse the line {}", buf))?,
+                    );
+                }
+            }
+        }
+
+        Ok(result)
+    }
+}
+
 #[derive(StructOpt)]
 struct Args {
     #[structopt(short, long, default_value = "1", possible_values = &["1", "2"])]
     part: Part,
-}
-
-pub fn execute_day<I, P1: FnOnce(I) -> color_eyre::Result<()>, P2: FnOnce(I) -> color_eyre::Result<()>>(input: I, part1: P1, part2: P2) -> color_eyre::Result<()> {
-    let args = Args::from_args();
-
-    match args.part {
-        Part::One => part1(input),
-        Part::Two => part2(input),
-    }
-}
-
-pub fn read_input(day: &str) -> color_eyre::Result<impl BufRead> {
-    let mut path: std::path::PathBuf = INPUTS.into();
-    path.push(day);
-    let input = std::fs::File::open(path)
-        .with_context(|| format!("could not open input file at {}/{}", INPUTS, day))?;
-    Ok(std::io::BufReader::new(input))
-}
-
-pub fn read_all_lines<B: BufRead, I, E: Send + Sync + std::error::Error + 'static, F: FnMut(String) -> Result<I, E>>(
-    input: B,
-    mut parser: F,
-) -> color_eyre::Result<Vec<I>> {
-    input
-        .lines()
-        .map(move |line| -> color_eyre::Result<I> {
-            match line {
-                Ok(x) => parser(x).with_context(|| "Error parsing line"),
-                Err(e) => Err(e).with_context(|| "Error reading line"),
-            }
-        })
-        .collect()
+    #[structopt(short, long)]
+    input: PathBuf,
 }
