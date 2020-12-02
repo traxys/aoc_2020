@@ -1,8 +1,21 @@
 use color_eyre::eyre::Context;
-use std::{fmt::Display, fs::File, io::{BufRead, BufReader}, path::PathBuf, time::Duration, time::Instant};
+use std::{
+    fmt::Display,
+    fs::File,
+    io::{BufRead, BufReader},
+    path::PathBuf,
+    time::Duration,
+    time::Instant,
+};
 use structopt::StructOpt;
 
 pub mod problems;
+
+pub fn split_string_separator(input: &str, separator: char) -> Option<(&str, &str)> {
+    let separator_position = input.find(separator)?;
+    let (start, end) = input.split_at(separator_position);
+    Some((start, &end[1..]))
+}
 
 enum Part {
     One,
@@ -102,7 +115,12 @@ impl DayContext {
         Self::new(file, Part::Two)
     }
 
-    pub fn execute<I, R, P1, P2>(&mut self, input: I, part1: P1, part2: P2) -> color_eyre::Result<()>
+    pub fn execute<I, R, P1, P2>(
+        &mut self,
+        input: I,
+        part1: P1,
+        part2: P2,
+    ) -> color_eyre::Result<()>
     where
         R: Display,
         P1: FnOnce(I) -> color_eyre::Result<R>,
@@ -126,8 +144,7 @@ impl DayContext {
 
     pub fn parse_lines<
         I,
-        E: Send + Sync + std::error::Error + 'static,
-        F: FnMut(&str) -> Result<I, E>,
+        F: FnMut(&str) -> color_eyre::Result<I>,
     >(
         &mut self,
         mut parser: F,

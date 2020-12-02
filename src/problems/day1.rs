@@ -46,7 +46,7 @@ pub fn part_2(lines: &[u64]) -> color_eyre::Result<String> {
 }
 
 pub fn parsing(ctx: &mut DayContext) -> color_eyre::Result<Vec<u64>> {
-    let lines = ctx.parse_lines(|x| -> Result<u64, _> { x.parse() })?;
+    let lines = ctx.parse_lines(|x| -> Result<u64, _> { Ok(x.parse()?) })?;
     Ok(lines)
 }
 
