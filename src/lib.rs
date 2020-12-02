@@ -142,10 +142,7 @@ impl DayContext {
         Ok(())
     }
 
-    pub fn parse_lines<
-        I,
-        F: FnMut(&str) -> color_eyre::Result<I>,
-    >(
+    pub fn parse_lines<I, F: FnMut(&str) -> color_eyre::Result<I>>(
         &mut self,
         mut parser: F,
     ) -> color_eyre::Result<Vec<I>> {
@@ -172,6 +169,41 @@ impl DayContext {
                         parser(&buf)
                             .with_context(|| format!("Could not parse the line {}", buf))?,
                     );
+                }
+            }
+        }
+
+        if self.timing.parsing.is_none() {
+            self.timing.parsing = Some(start.elapsed());
+        }
+
+        Ok(result)
+    }
+
+    pub fn parse_byte_lines<I, F: FnMut(&[u8]) -> color_eyre::Result<I>>(
+        &mut self,
+        mut parser: F,
+    ) -> color_eyre::Result<Vec<I>> {
+        let mut result = Vec::new();
+
+        let mut buf = Vec::new();
+        let start = Instant::now();
+        loop {
+            buf.clear();
+            match self
+                .input_file
+                .read_until(b'\n', &mut buf)
+                .with_context(|| "Could not read line in the input file")?
+            {
+                0 => break,
+                _ => {
+                    if buf.ends_with(&[b'\n']) {
+                        buf.pop();
+                        if buf.ends_with(&[b'\r']) {
+                            buf.pop();
+                        }
+                    }
+                    result.push(parser(&buf).with_context(|| format!("Could not parse line"))?);
                 }
             }
         }
