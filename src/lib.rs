@@ -1,3 +1,4 @@
+use bstr::{BStr, ByteSlice};
 use color_eyre::eyre::Context;
 use std::{
     fmt::Display,
@@ -14,6 +15,11 @@ pub mod problems;
 pub fn split_string_separator(input: &str, separator: char) -> Option<(&str, &str)> {
     let separator_position = input.find(separator)?;
     let (start, end) = input.split_at(separator_position);
+    Some((start, &end[1..]))
+}
+pub fn split_bytes_separator(input: &[u8], separator: u8) -> Option<(&[u8], &[u8])> {
+    let sep_pos = input.find(&[separator])?;
+    let (start, end) = input.split_at(sep_pos);
     Some((start, &end[1..]))
 }
 
@@ -180,7 +186,7 @@ impl DayContext {
         Ok(result)
     }
 
-    pub fn parse_byte_lines<I, F: FnMut(&[u8]) -> color_eyre::Result<I>>(
+    pub fn parse_byte_lines<I, F: FnMut(&BStr) -> color_eyre::Result<I>>(
         &mut self,
         mut parser: F,
     ) -> color_eyre::Result<Vec<I>> {
@@ -203,7 +209,9 @@ impl DayContext {
                             buf.pop();
                         }
                     }
-                    result.push(parser(&buf).with_context(|| format!("Could not parse line"))?);
+                    result.push(
+                        parser(buf.as_bstr()).with_context(|| format!("Could not parse line"))?,
+                    );
                 }
             }
         }
