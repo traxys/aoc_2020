@@ -6,8 +6,8 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut context = DayContext::new_part1(input);
     let input = day1::parsing(&mut context).expect("parsing failed");
 
-    c.bench_function("part 1", |b| b.iter(|| day1::part_1(&input)));
-    c.bench_function("part 2", |b| b.iter(|| day1::part_2(&input)));
+    c.bench_function("day1/part1", |b| b.iter(|| day1::part_1(&input)));
+    c.bench_function("day1/part2", |b| b.iter(|| day1::part_2(&input)));
 }
 
 criterion_group!(benches, criterion_benchmark);
