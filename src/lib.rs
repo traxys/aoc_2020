@@ -222,6 +222,40 @@ impl DayContext {
 
         Ok(result)
     }
+
+    pub fn accumulate_byte_lines<F: FnMut(usize, &BStr) -> color_eyre::Result<()>>(
+        &mut self,
+        mut parser: F,
+    ) -> color_eyre::Result<()> {
+        let mut buf = Vec::new();
+        let start = Instant::now();
+        for i in 0.. {
+            buf.clear();
+            match self
+                .input_file
+                .read_until(b'\n', &mut buf)
+                .with_context(|| "Could not read line in the input file")?
+            {
+                0 => break,
+                _ => {
+                    if buf.ends_with(&[b'\n']) {
+                        buf.pop();
+                        if buf.ends_with(&[b'\r']) {
+                            buf.pop();
+                        }
+                    }
+                    parser(i, buf.as_bstr())
+                        .with_context(|| format!("Could not parse line: {}", buf.as_bstr()))?
+                }
+            }
+        }
+
+        if self.timing.parsing.is_none() {
+            self.timing.parsing = Some(start.elapsed());
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(StructOpt)]
