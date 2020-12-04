@@ -186,6 +186,40 @@ impl DayContext {
         Ok(result)
     }
 
+    pub fn accumulate_str_lines<F: FnMut(usize, &str) -> color_eyre::Result<()>>(
+        &mut self,
+        mut parser: F,
+    ) -> color_eyre::Result<()> {
+        let mut buf = String::new();
+        let start = Instant::now();
+        for i in 0.. {
+            buf.clear();
+            match self
+                .input_file
+                .read_line(&mut buf)
+                .with_context(|| "Could not read line in the input file")?
+            {
+                0 => break,
+                _ => {
+                    if buf.ends_with('\n') {
+                        buf.pop();
+                        if buf.ends_with('\r') {
+                            buf.pop();
+                        }
+                    }
+                    parser(i, &buf)
+                        .with_context(|| format!("Could not parse line: {}", buf))?
+                }
+            }
+        }
+
+        if self.timing.parsing.is_none() {
+            self.timing.parsing = Some(start.elapsed());
+        }
+
+        Ok(())
+    }
+
     pub fn parse_byte_lines<I, F: FnMut(&BStr) -> color_eyre::Result<I>>(
         &mut self,
         mut parser: F,
