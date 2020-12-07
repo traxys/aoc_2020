@@ -17,6 +17,12 @@ pub fn split_string_separator(input: &str, separator: char) -> Option<(&str, &st
     let (start, end) = input.split_at(separator_position);
     Some((start, &end[1..]))
 }
+pub fn large_split_str_sep<'i, 's>(input: &'i str, sep: &'s str) -> Option<(&'i str, &'i str)> {
+    let separator_pos = input.find(sep)?;
+    let (start, end) = input.split_at(separator_pos);
+    Some((start, &end[sep.len()..]))
+}
+
 pub fn split_bytes_separator(input: &[u8], separator: u8) -> Option<(&[u8], &[u8])> {
     let sep_pos = input.find(&[separator])?;
     let (start, end) = input.split_at(sep_pos);
