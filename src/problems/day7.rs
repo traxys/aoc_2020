@@ -61,7 +61,6 @@ pub fn parsing(context: &mut DayContext) -> color_eyre::Result<Input> {
                 }
             };
 
-            //print!("In {} we can have", container);
             for bag in containing.split(",").map(|s| {
                 s.trim_end_matches('.')
                     .trim_end_matches("bags")
@@ -71,7 +70,6 @@ pub fn parsing(context: &mut DayContext) -> color_eyre::Result<Input> {
                 let (number, color) = crate::split_string_separator(bag, ' ')
                     .ok_or_else(|| color_eyre::eyre::eyre!("Could not parse bag: {}", bag))?;
                 let color = color.trim();
-                //print!("{},", color);
 
                 let bag_node = match nodes.get(color) {
                     Some(id) => *id,
@@ -84,7 +82,6 @@ pub fn parsing(context: &mut DayContext) -> color_eyre::Result<Input> {
                 graph.add_edge(container_node, bag_node, number.parse()?);
             }
         }
-        //println!();
 
         Ok(())
     })?;
