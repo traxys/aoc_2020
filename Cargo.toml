@@ -9,9 +9,22 @@ edition = "2018"
 [dependencies]
 bstr = "0.2.14"
 color-eyre = "0.5.8"
-nalgebra = "0.23.1"
-petgraph = "0.5.1"
+nalgebra = { version = "0.23.1", optional = true }
+petgraph = { version = "0.5.1", optional = true }
 structopt = "0.3.21"
+
+[features]
+
+day1 =  []
+day2 =  []
+day3 =  []
+day4 =  []
+day5 =  []
+day6 =  []
+day7 =  ["petgraph"]
+day8 =  []
+day9 =  []
+day10 = ["nalgebra"]
 
 [dev-dependencies]
 criterion = "0.3.3"

@@ -1,10 +1,5 @@
-use std::{
-    collections::{HashMap, HashSet},
-    iter::{repeat, repeat_with},
-};
-
+use std::collections::HashMap;
 use nalgebra::DMatrix;
-use petgraph::algo::all_simple_paths;
 
 use crate::DayContext;
 
