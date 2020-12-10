@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 bstr = "0.2.14"
 color-eyre = "0.5.8"
+nalgebra = "0.23.1"
 petgraph = "0.5.1"
 structopt = "0.3.21"
 
