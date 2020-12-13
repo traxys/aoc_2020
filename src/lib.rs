@@ -154,6 +154,18 @@ impl DayContext {
         Ok(())
     }
 
+    pub fn read_line(&mut self) -> color_eyre::Result<String> {
+        let mut s = String::new();
+        self.input_file.read_line(&mut s)?;
+        if s.ends_with('\n') {
+            s.pop();
+            if s.ends_with('\r') {
+                s.pop();
+            }
+        }
+        Ok(s)
+    }
+
     pub fn parse_lines<I, F: FnMut(&str) -> color_eyre::Result<I>>(
         &mut self,
         mut parser: F,
@@ -213,8 +225,7 @@ impl DayContext {
                             buf.pop();
                         }
                     }
-                    parser(i, &buf)
-                        .with_context(|| format!("Could not parse line: {}", buf))?
+                    parser(i, &buf).with_context(|| format!("Could not parse line: {}", buf))?
                 }
             }
         }
