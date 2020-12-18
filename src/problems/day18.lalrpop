@@ -1,0 +1,28 @@
+use std::str::FromStr;
+
+grammar;
+
+pub NoPrecExpr: u64 = {
+	<l:NoPrecExpr> "+" <r:Term<NoPrecExpr>> => l + r,
+	<l:NoPrecExpr> "*" <r:Term<NoPrecExpr>> => l * r,
+	Term<NoPrecExpr>,
+};
+
+pub InvPrecExpr: u64 = {
+	<l:InvPrecExpr> "*" <r:Factor> => l * r,
+	Factor,
+};
+
+Factor: u64 = {
+	<l:Factor> "+" <r:Term<InvPrecExpr>> => l + r,
+	Term<InvPrecExpr>,
+}
+
+Term<E>: u64 = {
+	"(" <e:E> ")" => e,
+	Num,
+};
+
+Num: u64 = {
+	r"[0-9]+" => u64::from_str(<>).unwrap(),
+};
