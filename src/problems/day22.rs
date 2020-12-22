@@ -37,17 +37,13 @@ fn play_round(player1: &mut VecDeque<u64>, player2: &mut VecDeque<u64>) {
 fn register_configuration(
     player1: &VecDeque<u64>,
     player2: &VecDeque<u64>,
-    seen: &mut HashSet<(u64, u64)>,
+    seen: &mut HashSet<u64>,
 ) -> bool {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     player1.hash(&mut hasher);
-    let player1 = hasher.finish();
-
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
     player2.hash(&mut hasher);
-    let player2 = hasher.finish();
 
-    !seen.insert((player1, player2))
+    !seen.insert(hasher.finish())
 }
 
 // true means player1 won
@@ -57,37 +53,31 @@ fn recursive_combat(
 ) -> (bool, VecDeque<u64>) {
     let mut seen = HashSet::new();
 
-    loop {
+    while !player1.is_empty() && !player2.is_empty() {
         if register_configuration(&player1, &player2, &mut seen) {
             return (true, player1);
         }
 
-        let card1 = match player1.pop_front() {
-            Some(c) => c,
-            None => break,
-        };
-        let card2 = match player2.pop_front() {
-            Some(c) => c,
-            None => break,
-        };
+        let card1 = player1.pop_front().unwrap() as usize;
+        let card2 = player2.pop_front().unwrap() as usize;
 
         let player1win;
-        if player1.len() < card1 as usize || player2.len() < card2 as usize {
-            player1win = card1 > card2;
-        } else {
+        if card1 <= player1.len() && card2 <= player2.len() {
             player1win = recursive_combat(
-                player1.iter().take(card1 as usize).copied().collect(),
-                player2.iter().take(card2 as usize).copied().collect(),
+                player1.iter().take(card1).copied().collect(),
+                player2.iter().take(card2).copied().collect(),
             )
             .0;
+        } else {
+            player1win = card1 > card2;
         }
 
         if player1win {
-            player1.push_back(card1);
-            player1.push_back(card2);
+            player1.push_back(card1 as u64);
+            player1.push_back(card2 as u64);
         } else {
-            player2.push_back(card2);
-            player2.push_back(card1);
+            player2.push_back(card2 as u64);
+            player2.push_back(card1 as u64);
         }
     }
 
@@ -100,16 +90,15 @@ fn score(deck: &VecDeque<u64>) -> u64 {
     deck.iter()
         .rev()
         .enumerate()
-        .map(|(i, card)| (i + 1) as u64 * card)
+        .map(|(i, &card)| (i + 1) as u64 * card)
         .sum()
 }
 
 pub fn part_2((player1, player2): Input) -> color_eyre::Result<String> {
     let (winner, deck) = recursive_combat(player1, player2);
+    let winner_name = if winner { "player1" } else { "player2" };
 
-    let winner = if winner { "player1" } else { "player2" };
-
-    Ok(format!("Winner is {} with: {}", winner, score(&deck)))
+    Ok(format!("Winner is {} with: {}", winner_name, score(&deck),))
 }
 
 #[cfg(test)]
