@@ -151,18 +151,6 @@ mod test {
     }
 
     #[test]
-    fn example_rounds() {
-        let mut input = load_example();
-        for _ in 0..10 {
-            input.round();
-        }
-        assert_eq!(
-            input.ring_starting_at_current(),
-            [8, 3, 7, 4, 1, 9, 2, 6, 5]
-        )
-    }
-
-    #[test]
     fn example_100() {
         let mut input = load_example();
         for _ in 0..100 {
