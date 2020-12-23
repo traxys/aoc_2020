@@ -1,28 +1,11 @@
 use crate::DayContext;
-use std::{
-    convert::{TryFrom, TryInto},
-    ops::Sub,
-};
-use tinyvec::{Array, ArrayVec};
+use std::collections::HashMap;
+use std::convert::TryInto;
 
-pub trait VecLike<T>: AsRef<[T]> + AsMut<[T]> {
-    fn insert(&mut self, index: usize, element: T);
-    fn remove(&mut self, index: usize) -> T;
-}
-
-impl<A: Array> VecLike<A::Item> for ArrayVec<A> {
-    fn insert(&mut self, index: usize, element: A::Item) {
-        self.insert(index, element)
-    }
-    fn remove(&mut self, index: usize) -> A::Item {
-        self.remove(index)
-    }
-}
-
-type Input = [u8; 9];
+type Input = [u32; 9];
 
 pub fn part_1(cups: Input) -> color_eyre::Result<String> {
-    let mut cups = Cups::new(ArrayVec::from(cups));
+    let mut cups = Cups::new(&cups);
     for _ in 0..100 {
         cups.round();
     }
@@ -31,95 +14,103 @@ pub fn part_1(cups: Input) -> color_eyre::Result<String> {
     Ok(format!("Ring after 100 moves is: {}", output))
 }
 
-pub fn part_2(_: Input) -> color_eyre::Result<String> {
-    todo!()
+pub fn part_2(first_cups: Input) -> color_eyre::Result<String> {
+    let mut cups: Vec<u32> = (1..).take(1000000).collect();
+    for (c, &f) in cups.iter_mut().zip(first_cups.iter()) {
+        *c = f as u32;
+    }
+
+    let mut cups = Cups::new(&cups);
+    for _i in 0..10000000 {
+        cups.round();
+    }
+
+    let &after_1 = cups.ring.get(&1).unwrap();
+    let &after_after1 = cups.ring.get(&after_1).unwrap();
+
+    Ok(format!("Star cups are: {}", after_after1 as u64 * after_1 as u64))
 }
 
 #[derive(Debug)]
-pub struct Cups<T: Copy + PartialEq + Eq + From<u8> + Sub<T, Output = T>, V: VecLike<T>> {
-    ring: V,
-    current: T,
-    max: T,
+pub struct Cups {
+    ring: HashMap<u32, u32>,
+    current: u32,
+    max: u32,
 }
 
-impl<
-        T: Copy + PartialEq + Eq + Default + TryFrom<usize> + From<u8> + Sub<T, Output = T>,
-        V: VecLike<T>,
-    > Cups<T, V>
-{
-    fn new(ring: V) -> Self {
+impl Cups {
+    fn new(ring_list: &[u32]) -> Self {
+        let mut ring = HashMap::new();
+        for (&i, &j) in ring_list.iter().zip(ring_list.iter().skip(1)) {
+            ring.insert(i, j);
+        }
+        ring.insert(*ring_list.last().unwrap(), *ring_list.first().unwrap());
         Self {
-            current: ring.as_ref()[0],
-            max: match T::try_from(ring.as_ref().len()) {
-                Ok(v) => v,
-                Err(_) => panic!("Len does not fit in T"),
-            },
+            current: ring_list[0],
+            max: ring_list.len() as u32,
             ring,
         }
     }
-    fn following(&self, idx: usize) -> [T; 3] {
-        let mut arr = [T::default(); 3];
-        for i in 0..3 {
-            arr[i] = self.ring.as_ref()[(idx + 1 + i) % 9];
+
+    fn take_cups(&mut self, idx: u32) -> [u32; 3] {
+        let mut cups = [0; 3];
+
+        for cup in &mut cups {
+            let &target = self.ring.get(&idx).unwrap();
+            let next = self.ring.remove(&target).unwrap();
+            *cup = target;
+            self.ring.insert(self.current, next);
         }
-        arr
+
+        cups
     }
 
-    fn following_current(&self) -> [T; 3] {
-        self.following(self.idx_of(self.current))
-    }
-
-    fn idx_of(&self, target: T) -> usize {
-        self.ring
-            .as_ref()
-            .iter()
-            .enumerate()
-            .find(|(_, &x)| x == target)
-            .unwrap()
-            .0
+    /// .... -> after -> next -> ....
+    /// .... -> after -> cup[0] -> cup[1] -> cup[2] -> next -> ...
+    fn insert_cups(&mut self, cups: [u32; 3], after: u32) {
+        let next = self.ring.remove(&after).unwrap();
+        self.ring.insert(after, cups[0]);
+        self.ring.insert(cups[0], cups[1]);
+        self.ring.insert(cups[1], cups[2]);
+        self.ring.insert(cups[2], next);
     }
 
     fn round(&mut self) {
-        let following_current = self.following_current();
-        for &x in following_current.iter() {
-            self.ring.remove(self.idx_of(x));
-        }
-        let dest = self.locate_destination(following_current);
-        for &x in following_current.iter().rev() {
-            self.ring.insert(dest + 1, x)
-        }
-        self.current = self.ring.as_ref()[(self.idx_of(self.current) + 1) % 9]
+        let cups = self.take_cups(self.current);
+        let dest = self.destination(cups);
+        self.insert_cups(cups, dest);
+        self.current = *self.ring.get(&self.current).unwrap();
     }
 
-    fn locate_destination(&self, invalid: [T; 3]) -> usize {
+    fn destination(&self, invalid: [u32; 3]) -> u32 {
         let mut current = self.current;
-        let target = loop {
-            let target = if current == T::from(1) {
-                self.max
-            } else {
-                current - T::from(1)
-            };
+
+        loop {
+            let target = if current == 1 { self.max } else { current - 1 };
 
             if !invalid.contains(&target) {
                 break target;
             } else {
                 current = target;
             }
-        };
-        self.idx_of(target)
+        }
     }
 
-    fn ring_starting_at(&self, start: T) -> Vec<T> {
-        let mut r = vec![T::default(); self.ring.as_ref().len()];
-        let current = self.idx_of(start);
-        let end = &self.ring.as_ref()[current..];
-        r[..end.len()].copy_from_slice(end);
-        r[end.len()..].copy_from_slice(&self.ring.as_ref()[..current]);
-        r
+    fn ring_starting_at(&self, start: u32) -> Vec<u32> {
+        let mut r = vec![start];
+        loop {
+            let point = r.last().unwrap();
+            let &next = self.ring.get(point).unwrap();
+            if next == start {
+                break r;
+            } else {
+                r.push(next)
+            }
+        }
     }
 
     #[cfg(test)]
-    fn ring_starting_at_current(&self) -> Vec<T> {
+    fn ring_starting_at_current(&self) -> Vec<u32> {
         self.ring_starting_at(self.current)
     }
 }
@@ -127,24 +118,24 @@ impl<
 #[cfg(test)]
 mod test {
     use super::Cups;
-    use tinyvec::ArrayVec;
 
-    fn load_example() -> Cups<u8, ArrayVec<[u8; 9]>> {
-        Cups::new(tinyvec::array_vec![3, 8, 9, 1, 2, 5, 4, 6, 7])
+    fn load_example() -> Cups {
+        Cups::new(&[3, 8, 9, 1, 2, 5, 4, 6, 7])
     }
 
     #[test]
     fn example_first_following() {
-        let input = load_example();
-        let following = input.following_current();
+        let mut input = load_example();
+        let following = input.take_cups(input.current);
         assert_eq!(following, [8, 9, 1]);
     }
 
     #[test]
     fn example_first_destination() {
-        let input = load_example();
-        let dest = input.locate_destination(input.following_current());
-        assert_eq!(dest, 4);
+        let mut input = load_example();
+        let following = input.take_cups(input.current);
+        let dest = input.destination(following);
+        assert_eq!(dest, 2);
     }
 
     #[test]
@@ -181,8 +172,8 @@ mod test {
 
 pub fn parsing(context: &mut DayContext) -> color_eyre::Result<Input> {
     let ring = context.read_line()?;
-    let ring: Vec<_> = ring.as_bytes().iter().map(|c| c - b'0').collect();
-    let array: [u8; 9] = ring
+    let ring: Vec<_> = ring.as_bytes().iter().map(|c| (c - b'0') as u32).collect();
+    let array: [u32; 9] = ring
         .try_into()
         .map_err(|v: Vec<_>| color_eyre::eyre::eyre!("Ring is of invalid size: {}", v.len()))?;
 
