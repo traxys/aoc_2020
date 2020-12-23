@@ -1,5 +1,4 @@
 use crate::DayContext;
-use std::collections::HashMap;
 use std::convert::TryInto;
 
 type Input = [u32; 9];
@@ -25,41 +24,44 @@ pub fn part_2(first_cups: Input) -> color_eyre::Result<String> {
         cups.round();
     }
 
-    let &after_1 = cups.ring.get(&1).unwrap();
-    let &after_after1 = cups.ring.get(&after_1).unwrap();
+    let after_1 = cups.ring[1];
+    let after_after1 = cups.ring[after_1];
 
-    Ok(format!("Star cups are: {}", after_after1 as u64 * after_1 as u64))
+    Ok(format!(
+        "Star cups are: {}",
+        after_after1 as u64 * after_1 as u64
+    ))
 }
 
 #[derive(Debug)]
 pub struct Cups {
-    ring: HashMap<u32, u32>,
-    current: u32,
-    max: u32,
+    ring: Vec<usize>,
+    current: usize,
+    max: usize,
 }
 
 impl Cups {
     fn new(ring_list: &[u32]) -> Self {
-        let mut ring = HashMap::new();
+        let mut ring = vec![0; ring_list.len() + 1];
         for (&i, &j) in ring_list.iter().zip(ring_list.iter().skip(1)) {
-            ring.insert(i, j);
+            ring[i as usize] = j as usize;
         }
-        ring.insert(*ring_list.last().unwrap(), *ring_list.first().unwrap());
+        ring[*ring_list.last().unwrap() as usize] = *ring_list.first().unwrap() as usize;
         Self {
-            current: ring_list[0],
-            max: ring_list.len() as u32,
+            current: ring_list[0] as usize,
+            max: ring_list.len(),
             ring,
         }
     }
 
-    fn take_cups(&mut self, idx: u32) -> [u32; 3] {
+    fn take_cups(&mut self, idx: usize) -> [usize; 3] {
         let mut cups = [0; 3];
 
         for cup in &mut cups {
-            let &target = self.ring.get(&idx).unwrap();
-            let next = self.ring.remove(&target).unwrap();
+            let target = self.ring[idx];
+            let next = self.ring[target];
             *cup = target;
-            self.ring.insert(self.current, next);
+            self.ring[self.current] = next;
         }
 
         cups
@@ -67,22 +69,22 @@ impl Cups {
 
     /// .... -> after -> next -> ....
     /// .... -> after -> cup[0] -> cup[1] -> cup[2] -> next -> ...
-    fn insert_cups(&mut self, cups: [u32; 3], after: u32) {
-        let next = self.ring.remove(&after).unwrap();
-        self.ring.insert(after, cups[0]);
-        self.ring.insert(cups[0], cups[1]);
-        self.ring.insert(cups[1], cups[2]);
-        self.ring.insert(cups[2], next);
+    fn insert_cups(&mut self, cups: [usize; 3], after: usize) {
+        let next = self.ring[after];
+        self.ring[after] = cups[0];
+        self.ring[cups[0]] = cups[1];
+        self.ring[cups[1]] = cups[2];
+        self.ring[cups[2]] = next;
     }
 
     fn round(&mut self) {
         let cups = self.take_cups(self.current);
         let dest = self.destination(cups);
         self.insert_cups(cups, dest);
-        self.current = *self.ring.get(&self.current).unwrap();
+        self.current = self.ring[self.current];
     }
 
-    fn destination(&self, invalid: [u32; 3]) -> u32 {
+    fn destination(&self, invalid: [usize; 3]) -> usize {
         let mut current = self.current;
 
         loop {
@@ -96,11 +98,11 @@ impl Cups {
         }
     }
 
-    fn ring_starting_at(&self, start: u32) -> Vec<u32> {
+    fn ring_starting_at(&self, start: usize) -> Vec<usize> {
         let mut r = vec![start];
         loop {
-            let point = r.last().unwrap();
-            let &next = self.ring.get(point).unwrap();
+            let &point = r.last().unwrap();
+            let next = self.ring[point];
             if next == start {
                 break r;
             } else {
@@ -110,7 +112,7 @@ impl Cups {
     }
 
     #[cfg(test)]
-    fn ring_starting_at_current(&self) -> Vec<u32> {
+    fn ring_starting_at_current(&self) -> Vec<usize> {
         self.ring_starting_at(self.current)
     }
 }
