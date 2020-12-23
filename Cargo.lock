@@ -47,6 +47,7 @@ dependencies = [
  "petgraph",
  "regex",
  "structopt",
+ "tinyvec",
 ]
 
 [[package]]
@@ -1260,6 +1261,12 @@ dependencies = [
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "tinyvec"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccf8dbc19eb42fba10e8feaaec282fb50e2c14b2726d6301dbfeed0f73306a6f"
 
 [[package]]
 name = "tracing"
