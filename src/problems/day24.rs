@@ -119,6 +119,7 @@ impl GameOfLife {
 
     fn step(&mut self) {
         let mut new_active = HashSet::new();
+        let mut done = HashSet::new();
 
         for &point in &self.active {
             // This point is black
@@ -127,11 +128,13 @@ impl GameOfLife {
                 new_active.insert(point);
             }
             for neighbour in point.neighbours() {
-                // Only do the white as we will have done the black in the outer loop
-                if !self.active.contains(&neighbour) {
-                    let neigbour_count = self.neighbours(neighbour);
-                    if neigbour_count == 2 {
-                        new_active.insert(neighbour);
+                if !done.insert(neighbour) {
+                    // Only do the white as we will have done the black in the outer loop
+                    if !self.active.contains(&neighbour) {
+                        let neigbour_count = self.neighbours(neighbour);
+                        if neigbour_count == 2 {
+                            new_active.insert(neighbour);
+                        }
                     }
                 }
             }
