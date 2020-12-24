@@ -44,3 +44,5 @@ pub mod day21;
 pub mod day22;
 #[cfg(feature = "day23")]
 pub mod day23;
+#[cfg(feature = "day24")]
+pub mod day24;
